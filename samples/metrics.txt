@@ -1,0 +1,34 @@
+Camera4_0407.jpg: uiqm=0.5581991238814921 uciqe=12.365117207303651
+Camera4_0413.jpg: uiqm=0.09219042966377587 uciqe=12.997833872898935
+Camera4_0407.jpg: uiqm=0.5581991238814921 uciqe=12.365117207303651
+Camera4_0413.jpg: uiqm=0.09219042966377587 uciqe=12.997833872898935
+Camera4_0215.jpg: uiqm=0.8915349915208132 uciqe=16.716703413499037
+Camera4_0214.jpg: uiqm=1.0394522597987683 uciqe=17.42517618438528
+Camera4_0162.jpg: uiqm=0.9814100732761896 uciqe=19.67660895384141
+Camera4_0412.jpg: uiqm=0.13925541258185242 uciqe=13.161194116568169
+Camera4_0406.jpg: uiqm=0.6738759134604737 uciqe=12.157301667508456
+Camera4_0438.jpg: uiqm=0.02926458356324367 uciqe=10.858429577261289
+Camera4_0410.jpg: uiqm=0.19025349398632757 uciqe=12.207002223506333
+Camera4_0404.jpg: uiqm=0.6339316189176709 uciqe=11.359030497508511
+Camera4_0148.jpg: uiqm=1.070095685745196 uciqe=18.52442875991852
+Camera4_0160.jpg: uiqm=1.0375383821095474 uciqe=20.488598448551762
+Camera4_0407.jpg: uiqm=0.4174 uciqe=12.3651 luminance=137.5454
+Camera4_0413.jpg: uiqm=0.0519 uciqe=12.9978 luminance=119.4902
+Camera4_0215.jpg: uiqm=0.9169 uciqe=16.7167 luminance=147.2004
+Camera4_0214.jpg: uiqm=1.0561 uciqe=17.4252 luminance=149.4591
+Camera4_0162.jpg: uiqm=0.9831 uciqe=19.6766 luminance=153.2903
+Camera4_0412.jpg: uiqm=0.0816 uciqe=13.1612 luminance=121.2615
+Camera4_0406.jpg: uiqm=0.5546 uciqe=12.1573 luminance=145.0339
+Camera4_0438.jpg: uiqm=-0.0266 uciqe=10.8584 luminance=129.9473
+Camera4_0410.jpg: uiqm=0.0956 uciqe=12.2070 luminance=123.4101
+Camera4_0404.jpg: uiqm=0.5610 uciqe=11.3590 luminance=150.1118
+Camera4_0148.jpg: uiqm=1.0884 uciqe=18.5244 luminance=154.4722
+Camera4_0160.jpg: uiqm=1.0314 uciqe=20.4886 luminance=145.9822
+Camera4_0216.jpg: uiqm=0.9369 uciqe=16.6433 luminance=147.1457
+Camera4_0217.jpg: uiqm=0.8380 uciqe=16.2868 luminance=145.2931
+Camera4_0161.jpg: uiqm=1.0189 uciqe=20.0674 luminance=148.7492
+Camera4_0149.jpg: uiqm=1.1065 uciqe=18.7434 luminance=153.5572
+Camera4_0405.jpg: uiqm=0.6223 uciqe=11.8829 luminance=148.6332
+Camera4_0411.jpg: uiqm=0.0994 uciqe=12.8610 luminance=120.5231
+Camera4_0439.jpg: uiqm=-0.0337 uciqe=9.9847 luminance=129.4511
+Camera4_0415.jpg: uiqm=0.0751 uciqe=12.1423 luminance=124.4293
