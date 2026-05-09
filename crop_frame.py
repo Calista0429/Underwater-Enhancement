@@ -2,6 +2,7 @@ import os
 import cv2
 import multiprocessing
 import time
+import sys
 
 def extract_frames(video_file, output_dir):
     cap = cv2.VideoCapture(video_file)
