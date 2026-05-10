@@ -1,173 +1,88 @@
-#!/usr/bin/env python3
-"""
-读取主文件夹下各子目录中的 metrics.txt（由 image_quality_assess 等生成），
-提取各子文件夹的平均 UIQM / UCIQE / Luminance，再在主文件夹尺度上汇总，
-将结果写入主目录下的 metrics_summary.txt。
-
-默认：各子文件夹的平均值再取算术平均（每个子文件夹权重相同）。
-"""
-from __future__ import annotations
-
-import argparse
-import re
-import statistics
+import os
 import sys
-from pathlib import Path
+import glob
 
-FLOAT_RE = r"[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?"
+def calculate_global_average(main_folder):
+    total_uiqm = 0.0
+    total_uciqe = 0.0
+    total_luminance = 0.0
+    total_images = 0
 
-AVG_BLOCK_RE = re.compile(
-    rf"(?:^|\n)===\s*Average\s*===\s*\n"
-    rf"UIQM:\s*({FLOAT_RE})\s*\n"
-    rf"UCIQE:\s*({FLOAT_RE})\s*\n"
-    rf"(?:Luminance:\s*({FLOAT_RE})\s*)?",
-    re.IGNORECASE | re.MULTILINE,
-)
+    print(f"正在扫描路径: {main_folder} ...")
+    
+    # 匹配所有子文件夹下的 metrics.txt
+    txt_files = glob.glob(os.path.join(main_folder, '*', 'metrics.txt'))
 
-PER_IMAGE_RE = re.compile(
-    rf"uiqm=({FLOAT_RE})\s+uciqe=({FLOAT_RE})"
-    rf"(?:\s+luminance=({FLOAT_RE}))?",
-    re.IGNORECASE,
-)
+    if not txt_files:
+        print(f"❌ 错误：未在 '{main_folder}' 的子文件夹中找到任何 metrics.txt 文件！")
+        return
 
+    for txt_file in txt_files:
+        with open(txt_file, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            for line in lines:
+                # 过滤掉无用的汇总行和空行
+                if 'Average' in line or '===' in line or not line.strip():
+                    continue
+                
+                # 提取图片指标
+                if 'uiqm=' in line and 'uciqe=' in line:
+                    try:
+                        parts = line.strip().split()
+                        uiqm_val = float(parts[1].split('=')[1])
+                        uciqe_val = float(parts[2].split('=')[1])
+                        lum_val = float(parts[3].split('=')[1])
 
-def _parse_float(s: str) -> float:
-    return float(s.strip())
+                        total_uiqm += uiqm_val
+                        total_uciqe += uciqe_val
+                        total_luminance += lum_val
+                        total_images += 1
+                        
+                    except Exception as e:
+                        print(f"解析警告: 文件 {txt_file} 中的 '{line.strip()}' 无法解析 - {e}")
 
-
-def parse_metrics_txt(path: Path) -> tuple[float, float, float | None, str]:
-    """
-    返回 (uiqm, uciqe, luminance_or_None, source说明)。
-    优先解析 === Average ===；否则对文件中所有 per-image 行求平均。
-    """
-    text = path.read_text(encoding="utf-8", errors="replace")
-    m = AVG_BLOCK_RE.search(text)
-    if m:
-        uiqm = _parse_float(m.group(1))
-        uciqe = _parse_float(m.group(2))
-        lum_s = m.group(3)
-        lum = _parse_float(lum_s) if lum_s else None
-        return uiqm, uciqe, lum, "=== Average ==="
-
-    rows = []
-    for pm in PER_IMAGE_RE.finditer(text):
-        u, c = _parse_float(pm.group(1)), _parse_float(pm.group(2))
-        l_raw = pm.group(3)
-        lum = _parse_float(l_raw) if l_raw else None
-        rows.append((u, c, lum))
-    if not rows:
-        raise ValueError("未找到 === Average === 且无任何 uiqm= / uciqe= 行")
-
-    uiqms = [r[0] for r in rows]
-    uciqes = [r[1] for r in rows]
-    lums = [r[2] for r in rows if r[2] is not None]
-    mean_lum = statistics.mean(lums) if lums else None
-    return (
-        statistics.mean(uiqms),
-        statistics.mean(uciqes),
-        mean_lum,
-        f"由 {len(rows)} 条逐图记录回退计算",
-    )
-
-
-def main() -> int:
-    p = argparse.ArgumentParser(
-        description="汇总各子文件夹 metrics.txt 中的平均指标，写入主目录 metrics_summary.txt。"
-    )
-    p.add_argument(
-        "root",
-        type=Path,
-        help="主文件夹，例如 Dataset（其下含 Camera1、Camera2…各含 metrics.txt）",
-    )
-    p.add_argument(
-        "-o",
-        "--output",
-        type=Path,
-        default=None,
-        help="输出文件路径（默认：<主文件夹>/metrics_summary.txt）",
-    )
-    args = p.parse_args()
-    root: Path = args.root.expanduser().resolve()
-    if not root.is_dir():
-        print(f"不是有效文件夹: {root}", file=sys.stderr)
-        return 1
-
-    out_path = (
-        args.output.expanduser().resolve()
-        if args.output
-        else root / "metrics_summary.txt"
-    )
-
-    subdirs = sorted([d for d in root.iterdir() if d.is_dir()])
-    if not subdirs:
-        print(f"主文件夹下没有子目录: {root}", file=sys.stderr)
-        return 1
-
-    records: list[tuple[str, float, float, float | None, str]] = []
-    errors: list[str] = []
-
-    for d in subdirs:
-        mt = d / "metrics.txt"
-        if not mt.is_file():
-            errors.append(f"[跳过] {d.name}: 无 metrics.txt")
-            continue
-        try:
-            u, c, l, src = parse_metrics_txt(mt)
-            records.append((d.name, u, c, l, src))
-        except Exception as e:
-            errors.append(f"[失败] {d.name}: {e}")
-
-    for msg in errors:
-        print(msg, file=sys.stderr)
-
-    if not records:
-        print("没有可用的子文件夹指标，未生成汇总文件。", file=sys.stderr)
-        return 1
-
-    uiqms = [r[1] for r in records]
-    uciqes = [r[2] for r in records]
-    lums = [r[3] for r in records if r[3] is not None]
-
-    mean_uiqm = statistics.mean(uiqms)
-    mean_uciqe = statistics.mean(uciqes)
-    mean_lum = statistics.mean(lums) if lums else None
-
-    lines = [
-        "# 主文件夹指标汇总（各子文件夹平均后再整体平均）",
-        f"# 主路径: {root}",
-        f"# 参与子文件夹数: {len(records)}",
-        "",
-        "## 各子文件夹",
-        "",
-    ]
-    for name, u, c, l, src in records:
-        lines.append(f"- {name}")
-        lines.append(f"  UIQM: {u:.6f}")
-        lines.append(f"  UCIQE: {c:.6f}")
-        if l is not None:
-            lines.append(f"  Luminance: {l:.6f}")
-        else:
-            lines.append("  Luminance: (无)")
-        lines.append(f"  来源: {src}")
-        lines.append("")
-
-    lines.extend(
-        [
-            "## 全数据集（子文件夹平均的算术平均）",
-            "",
-            f"UIQM: {mean_uiqm:.6f}",
-            f"UCIQE: {mean_uciqe:.6f}",
-        ]
-    )
-    if mean_lum is not None:
-        lines.append(f"Luminance: {mean_lum:.6f}")
+    # 计算最终的全局平均并保存
+    if total_images > 0:
+        global_uiqm = total_uiqm / total_images
+        global_uciqe = total_uciqe / total_images
+        global_luminance = total_luminance / total_images
+        
+        # 构建输出的文本内容
+        summary_text = (
+            f"{'='*40}\n"
+            f"全局统计完成！共扫描了 {len(txt_files)} 个文件夹，包含 {total_images} 张图片。\n"
+            f"{'-'*40}\n"
+            f"【全局真实平均 UIQM】:      {global_uiqm:.4f}\n"
+            f"【全局真实平均 UCIQE】:     {global_uciqe:.4f}\n"
+            f"【全局真实平均 Luminance】: {global_luminance:.4f}\n"
+            f"{'='*40}\n"
+        )
+        
+        # 1. 打印到控制台
+        print(summary_text)
+        
+        # 2. 保存到 txt 文件中
+        output_file = os.path.join(main_folder, 'global_summary.txt')
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(summary_text)
+            
+        print(f"✅ 统计结果已成功保存至: {output_file}")
     else:
-        lines.append("Luminance: (各子目录均无此项，未汇总)")
+        print("⚠️ 解析完成，但没有提取到有效的单张图片数据。请检查 txt 文件的格式。")
 
-    out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"已写入: {out_path}")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__ == '__main__':
+    # 检查命令行参数是否足够
+    if len(sys.argv) < 2:
+        print("用法: python script.py <主文件夹的路径>")
+        print("示例: python script.py /home/user/underwater_datasets")
+        sys.exit(1)
+        
+    # 获取传入的路径
+    TARGET_MAIN_FOLDER = sys.argv[1]
+    
+    # 检查路径是否存在
+    if not os.path.isdir(TARGET_MAIN_FOLDER):
+        print(f"❌ 错误：找不到文件夹 '{TARGET_MAIN_FOLDER}'。请检查路径是否拼写正确。")
+        sys.exit(1)
+        
+    calculate_global_average(TARGET_MAIN_FOLDER)
